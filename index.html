@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MBTA Trivia</title>
+  <meta name="description" content="Questions about the MBTA. Play a round, or leave it running on a screen at an event.">
+  <meta property="og:title" content="MBTA Trivia">
+  <meta property="og:description" content="Questions about the MBTA. Play a round, or leave it running on a screen at an event.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#101418">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#app">Skip to content</a>
+  <div class="stripes" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <header class="top">
+    <button type="button" id="setup-btn" hidden>Back to setup</button>
+    <div class="top-end">
+      <div class="modes" role="group" aria-label="Appearance">
+        <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
+        <button type="button" data-theme="light" aria-pressed="false">Light</button>
+      </div>
+      <nav class="modes" aria-label="Mode">
+        <button type="button" data-mode="play" aria-pressed="true">Play</button>
+        <button type="button" data-mode="event" aria-pressed="false">Event</button>
+      </nav>
+    </div>
+  </header>
+  <main id="app" tabindex="-1"></main>
+  <script src="js/parse-questions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
