@@ -25,6 +25,9 @@ const state = {
   loop: true,
   light: false,
   scramble: false,
+  showChoices: false,
+  showAnswers: false,
+  openAnswers: new Set(),
   visit: 0,
   presentation: null,
   showControls: false,
@@ -41,6 +44,8 @@ function loadSettings() {
     if (typeof saved.loop === "boolean") state.loop = saved.loop;
     if (typeof saved.light === "boolean") state.light = saved.light;
     if (typeof saved.scramble === "boolean") state.scramble = saved.scramble;
+    if (typeof saved.showChoices === "boolean") state.showChoices = saved.showChoices;
+    if (typeof saved.showAnswers === "boolean") state.showAnswers = saved.showAnswers;
   } catch {
     /* keep defaults */
   }
@@ -57,6 +62,8 @@ function saveSettings() {
       loop: state.loop,
       light: state.light,
       scramble: state.scramble,
+      showChoices: state.showChoices,
+      showAnswers: state.showAnswers,
     })
   );
 }
@@ -143,8 +150,10 @@ function render() {
   const eventLive = state.mode === "event" && state.eventRunning && state.eventPhase !== "done";
   document.body.classList.toggle("event-live", eventLive);
   document.documentElement.classList.toggle("event-live", eventLive);
+  document.body.classList.toggle("list-mode", state.mode === "list");
   app.replaceChildren();
   if (state.mode === "play") renderPlay();
+  else if (state.mode === "list") renderList();
   else renderEvent();
   syncSetupButton();
   paintTimer();
@@ -153,6 +162,7 @@ function render() {
 
 function onSetupPage() {
   if (state.mode === "play") return state.playPhase === "intro";
+  if (state.mode === "list") return true;
   return state.eventPhase === "setup";
 }
 
@@ -317,6 +327,113 @@ async function copyScore() {
   } catch {
     if (label) label.textContent = " — copy failed, select the score instead";
   }
+}
+
+function renderList() {
+  const questions = QUESTIONS.slice().sort((a, b) => a.id - b.id);
+  app.append(
+    h("section", { class: "stage list-stage" },
+      h("div", { class: "list-bar" },
+        h("p", { class: "kicker" }, `${questions.length} questions`),
+        h("div", { class: "fields" },
+          listToggle("show-choices", "showChoices", "Show choices"),
+          listToggle("show-answers", "showAnswers", "Show all answers")
+        )
+      ),
+      h("ol", { class: "trivia-list" }, questions.map(listItem))
+    )
+  );
+}
+
+function listToggle(id, key, label) {
+  return h("label", { class: "field inline", for: id },
+    h("input", {
+      id,
+      type: "checkbox",
+      checked: state[key] ? "checked" : null,
+      onchange: (event) => setListFlag(key, event.target.checked),
+    }),
+    label
+  );
+}
+
+function setListFlag(key, checked) {
+  const scroll = app.scrollTop;
+  state[key] = checked;
+  saveSettings();
+  render();
+  app.scrollTop = scroll;
+  document.querySelector(`#${key === "showChoices" ? "show-choices" : "show-answers"}`)?.focus();
+}
+
+function answerShown(question) {
+  return state.showAnswers || state.openAnswers.has(question.id);
+}
+
+function toggleAnswer(id) {
+  const scroll = app.scrollTop;
+  if (state.showAnswers) {
+    state.showAnswers = false;
+    state.openAnswers = new Set(QUESTIONS.map((question) => question.id).filter((questionId) => questionId !== id));
+    saveSettings();
+  } else if (state.openAnswers.has(id)) {
+    state.openAnswers.delete(id);
+  } else {
+    state.openAnswers.add(id);
+  }
+  render();
+  app.scrollTop = scroll;
+  document.querySelector(`[data-answer-for="${id}"]`)?.focus();
+}
+
+function listItem(question) {
+  const showChoices = state.showChoices;
+  const showAnswers = answerShown(question);
+  return h("li", { class: "list-item" },
+    h("h2", { class: "list-question" },
+      h("span", { class: "list-id" }, String(question.id)),
+      question.text
+    ),
+    h("button", {
+      class: "list-reveal",
+      type: "button",
+      pressed: showAnswers,
+      "data-answer-for": String(question.id),
+      onclick: () => toggleAnswer(question.id),
+    }, showAnswers ? "Hide answer" : "Show answer"),
+    showChoices ? listChoices(question, showAnswers) : null,
+    !showChoices && showAnswers ? listAnswerOnly(question) : null,
+    showAnswers && question.explanation
+      ? h("p", { class: "explanation" }, h("strong", {}, "Answer. "), question.explanation)
+      : null
+  );
+}
+
+function listChoices(question, showAnswers) {
+  return h("ul", { class: "choices" },
+    question.choices.map((choice, index) => {
+      const classes = ["choice"];
+      if (showAnswers && index === question.answer) classes.push("correct");
+      else if (showAnswers) classes.push("dim");
+      return h("li", {},
+        h("div", { class: classes.join(" ") },
+          h("span", { class: "letter" }, LETTERS[index]),
+          h("span", {}, choice),
+          showAnswers && index === question.answer
+            ? h("span", { class: "visually-hidden" }, " (correct answer)")
+            : null
+        )
+      );
+    })
+  );
+}
+
+function listAnswerOnly(question) {
+  return h("div", { class: "choice correct" },
+    h("span", { class: "letter" }, LETTERS[question.answer]),
+    h("span", {}, question.choices[question.answer]),
+    h("span", { class: "visually-hidden" }, " (correct answer)")
+  );
 }
 
 function renderEvent() {
@@ -550,12 +667,12 @@ function fitEventBoard() {
   const wrap = document.querySelector(".event-board .question-wrap");
   const fit = document.querySelector(".event-board .question-fit");
   if (!wrap || !fit || wrap.clientHeight < 40) return;
-  const max = Math.round(Math.min(34, Math.max(18, window.innerHeight / 24)));
-  let size = max;
-  fit.style.fontSize = `${size}px`;
-  while (size > 13 && fit.offsetHeight > wrap.clientHeight) {
-    size -= 1;
-    fit.style.fontSize = `${size}px`;
+  // Start at the same type size as play mode, then shrink only if the slide would clip.
+  fit.style.zoom = "1";
+  let zoom = 1;
+  while (zoom > 0.62 && fit.getBoundingClientRect().height > wrap.clientHeight + 1) {
+    zoom = Math.round((zoom - 0.02) * 100) / 100;
+    fit.style.zoom = String(zoom);
   }
 }
 
