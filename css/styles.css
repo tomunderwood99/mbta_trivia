@@ -204,11 +204,36 @@ main {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px var(--gutter) max(22px, env(safe-area-inset-bottom));
+  padding: 8px var(--gutter) 12px;
 }
 
 main:focus {
   outline: none;
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  width: min(var(--page), calc(100% - 2 * var(--gutter)));
+  margin: 0 auto;
+  padding: 4px 0 max(16px, env(safe-area-inset-bottom));
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.foot a {
+  color: inherit;
+}
+
+.foot a:hover {
+  color: var(--ink);
+}
+
+body.event-live .foot,
+body.is-fullscreen .foot {
+  display: none;
 }
 
 html.event-live,
@@ -221,6 +246,7 @@ body.event-live main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-bottom: max(22px, env(safe-area-inset-bottom));
 }
 
 body.is-fullscreen .stripes,
