@@ -667,13 +667,22 @@ function fitEventBoard() {
   const wrap = document.querySelector(".event-board .question-wrap");
   const fit = document.querySelector(".event-board .question-fit");
   if (!wrap || !fit || wrap.clientHeight < 40) return;
-  // Start at the same type size as play mode, then shrink only if the slide would clip.
-  fit.style.zoom = "1";
-  let zoom = 1;
-  while (zoom > 0.62 && fit.getBoundingClientRect().height > wrap.clientHeight + 1) {
-    zoom = Math.round((zoom - 0.02) * 100) / 100;
-    fit.style.zoom = String(zoom);
+  // Windowed: start at the play-mode type size and only shrink if the slide would clip.
+  // Full screen: grow as large as the screen allows.
+  const fits = (scale) => {
+    fit.style.setProperty("--slide-scale", String(scale));
+    return fit.getBoundingClientRect().height <= wrap.clientHeight + 1
+      && fit.scrollWidth <= fit.clientWidth + 1;
+  };
+  let low = 0.62;
+  let high = isFullscreen() ? 3 : 1;
+  if (fits(high)) return;
+  for (let i = 0; i < 10; i += 1) {
+    const mid = (low + high) / 2;
+    if (fits(mid)) low = mid;
+    else high = mid;
   }
+  fits(Math.floor(low * 100) / 100);
 }
 
 function startEvent() {

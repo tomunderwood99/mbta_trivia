@@ -264,7 +264,11 @@ body.is-fullscreen .top {
 }
 
 body.is-fullscreen main {
-  padding: max(56px, 7vh) var(--gutter) 28px;
+  padding: 3vh 4vw 2vh;
+}
+
+body.is-fullscreen .event-board {
+  max-width: none;
 }
 
 .stage {
@@ -620,6 +624,47 @@ body.list-mode main {
 
 .event-board .question-fit {
   width: 100%;
+}
+
+.event-board .question {
+  font-size: calc(clamp(1.45rem, 3vw, 2.55rem) * var(--slide-scale, 1));
+}
+
+.event-board .choice {
+  font-size: calc(clamp(1.05rem, 2vw, 1.4rem) * var(--slide-scale, 1));
+}
+
+.event-board .explanation {
+  font-size: calc(clamp(1rem, 1.6vw, 1.2rem) * var(--slide-scale, 1));
+}
+
+body.is-fullscreen .event-board .question-fit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+body.is-fullscreen .event-board .choices {
+  gap: 0.35em;
+}
+
+body.is-fullscreen .event-board .choice {
+  gap: 0.55em;
+  padding: 0.45em 0.65em;
+}
+
+body.is-fullscreen .event-board .choice .letter {
+  width: 2em;
+  height: 2em;
+  font-size: 0.7em;
+}
+
+body.is-fullscreen .event-board .explanation {
+  padding: 0.7em 0.85em;
+}
+
+body.is-fullscreen .event-board .meta {
+  font-size: 1.15rem;
 }
 
 .event-chrome {
